@@ -1,0 +1,43 @@
+version: "3.7"
+
+services:
+  speech-azure:
+    build: speech-azure
+    restart: unless-stopped
+    networks:
+     - voice-api
+    ports:
+      - 8181:8000
+    volumes:
+      - ./speech-azure/src/:/app
+      - /var/lib/asterisk/sounds/:/sounds
+      - /etc/localtime:/etc/localtime
+
+  speech-google:
+    build: speech-google
+    restart: unless-stopped
+    networks:
+     - voice-api
+    ports:
+      - 8182:8000
+    volumes:
+      - ./speech-google/src/:/app
+      - /var/lib/asterisk/sounds/:/sounds
+      - /etc/localtime:/etc/localtime
+
+  tts-azure:
+    build: tts-azure
+    restart: unless-stopped
+    networks:
+     - voice-api
+    ports:
+      - 8081:8000
+    volumes:
+      - ./tts-azure/src/:/app
+      - /var/lib/asterisk/sounds/:/sounds
+      - /etc/localtime:/etc/localtime
+    #entrypoint: watchmedo auto-restart --recursive --pattern="*.py" --directory="." python main.py
+
+networks:
+  voice-api:
+    external: true

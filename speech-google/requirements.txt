@@ -1,0 +1,10 @@
+fastapi
+pyyaml
+aiohttp
+watchdog
+argh
+SpeechRecognition
+google-api-python-client
+google-cloud-speech
+oauth2client
+idna<3.0

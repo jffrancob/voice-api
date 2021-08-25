@@ -1,0 +1,22 @@
+logging:
+  version: 1
+  formatters:
+    normal:
+      format: "[%(asctime)s] [%(levelname)s@%(name)s] %(message)s"
+  handlers:
+    file:
+      class: logging.handlers.RotatingFileHandler
+      formatter: normal
+      filename: publisher.log
+      maxBytes: 10485760
+      backupCount: 10
+    console:
+      class: logging.StreamHandler
+      formatter: normal
+  loggers:
+    publisher:
+      level: DEBUG
+      handlers: [file, console]
+  root:
+    level: DEBUG
+    handlers: [file, console]

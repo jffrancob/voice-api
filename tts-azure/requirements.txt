@@ -1,0 +1,6 @@
+fastapi
+pyyaml
+aiohttp
+sox
+watchdog
+argh
