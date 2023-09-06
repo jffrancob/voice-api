@@ -16,7 +16,7 @@ import logging
 import logging.config
 
 
-with open("config.yaml") as file_stream:
+with open("/etc/config.yaml") as file_stream:
     config = yaml.full_load(file_stream)
 
 logging.config.dictConfig(config.get("logging"))
@@ -29,25 +29,28 @@ except KeyError:
     logger.error("Please set the environment variable AZURE_API_TOKEN")
     sys.exit(1)
 
+DEFAULT_LANG = os.environ.get("DEFAULT_LANG", "es-MX-JorgeNeural")
+
 app = FastAPI()
 
 base_url = "https://eastus.tts.speech.microsoft.com/cognitiveservices"
 api_token = os.environ.get("AZURE_API_TOKEN")
 output_format = "raw-24khz-16bit-mono-pcm"
 provider = "azure"
+cache_format = "sln24"
 ssml_string = """
 <speak version="1.0"
        xmlns="https://www.w3.org/2001/10/synthesis"
        xmlns:mstts="http://www.w3.org/2001/mstts"
        xml:lang="{language}">
   <voice name="{voice}">
-    <prosody rate="{rate}" pitch="{pitch}">
-      {lexicon_tag}
       {text}
-    </prosody>
   </voice>
 </speak>
 """
+
+
+loop = asyncio.get_event_loop()
 
 
 @app.get("/voicelist")
@@ -60,49 +63,62 @@ async def voicelisst():
 
 
 @app.post("/synthesize")
-async def synthesize(text: str,
-                     voice: Optional[str] = "es-MX-JorgeNeural",
-                     rate: Optional[str] = "0%",
-                     pitch: Optional[str] = "0%",
-                     lexicon: Optional[str] = None,
-                     ):
-    headers = {"Ocp-Apim-Subscription-Key": api_token,
-               "X-Microsoft-OutputFormat": output_format,
-               "Content-Type": "application/ssml+xml"
-               }
-    lexicon_tag = f'<lexicon uri="{lexicon}"/>' if lexicon else ""
+async def synthesize(
+    text: str,
+    voice: Optional[str] = DEFAULT_LANG,
+    exten: Optional[str] = "alaw",
+    file_type: Optional[str] = "al",
+    rate: Optional[str] = 8000,
+):
+    headers = {
+        "Ocp-Apim-Subscription-Key": api_token,
+        "X-Microsoft-OutputFormat": output_format,
+        "Content-Type": "application/ssml+xml",
+    }
 
-    data = ssml_string.format(text=text,
-                              voice=voice,
-                              language=voice[0:5],
-                              rate=rate,
-                              pitch=pitch,
-                              lexicon_tag=lexicon_tag
-                              )
+    # SSML to send
+    data = ssml_string.format(text=text, voice=voice, language=voice[0:5])
     logger.debug(data)
+
     # Define file name and path
-    filename = hashlib.md5(text.encode()).hexdigest()
-    file_dir = f"/sounds/{provider}/{voice}"
+    md5_data = hashlib.md5(data.encode()).hexdigest()
+    d1, d2, filename = md5_data[0:2], md5_data[2:4], md5_data
+    dir_schema = f"{provider}/{voice}/{d1}/{d2}"
+    file_dir = f"/sounds/{dir_schema}"
     file_path = f"{file_dir}/{filename}"
 
+    # We need to ensure the defined directory
     ensure_dir(file_dir)
-    output_filepath = f"{file_path}.sln24"
-    if not os.path.exists(output_filepath) or os.path.getsize(output_filepath) <= 0:
+
+    # Store the content in plain text
+    with open(f"{file_path}.txt", "w") as content:
+        content.write(data)
+        content.close()
+
+    # This block performs the synthesize using Azure.
+    # It's done using the best quality.
+    # After that the final format is obtained using SOX
+    cache_filepath = f"{file_path}.{cache_format}"
+    if not os.path.exists(cache_filepath) or os.path.getsize(cache_filepath) <= 0:
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.post(f"{base_url}/v1", data=data) as result:
-                with open(output_filepath, 'wb') as output_file:
+                with open(cache_filepath, "wb") as output_file:
                     while True:
                         chunk = await result.content.read(1024)
                         if not chunk:
                             break
                         output_file.write(chunk)
 
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(None,
-                                        partial(sox_converter, file_path, 'alaw', 'al', 8000)
-                                        )
+    if not os.path.exists(cache_filepath) or os.path.getsize(cache_filepath) <= 0:
+        result = "azure_error"
+    else:
+        # The SOX converter is called in async mode
+        result = await loop.run_in_executor(
+            None, partial(sox_converter, file_path, exten, file_type, rate)
+        )
 
-    return {"sound_path": f"{provider}/{voice}/{filename}"}
+    # The final result is returned
+    return {"sound_path": f"{dir_schema}/{filename}", "exten": exten, "result": result}
 
 
 def ensure_dir(directory):
@@ -111,20 +127,20 @@ def ensure_dir(directory):
 
 
 def sox_converter(file_path, exten, file_type, rate=16000, bits=16, channels=1):
-    input_filepath = f'{file_path}.sln24'
-    output_filepath = f'{file_path}.{exten}'
+    input_filepath = f"{file_path}.{cache_format}"
+    output_filepath = f"{file_path}.{exten}"
 
-    if not os.path.exists(output_filepath) or os.path.getsize(output_filepath) <= 0:
+    if os.path.exists(output_filepath) and os.path.getsize(output_filepath) > 0:
+        return "cached"
+    else:
         tfm = sox.Transformer()
         tfm.silence(location=1)
         tfm.silence(location=-1)
         tfm.pad(0.05, 0.05)
 
-        tfm.set_input_format(file_type='sln', rate=24000, bits=16, channels=1)
+        tfm.set_input_format(file_type="sln", rate=24000, bits=16, channels=1)
         tfm.set_output_format(file_type, rate, bits, channels)
 
         result = tfm.build_file(input_filepath=input_filepath, output_filepath=output_filepath)
-    else:
-        result = None
 
-    return result
+        return "success" if result else "error"
