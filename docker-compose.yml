@@ -1,43 +1,85 @@
 version: "3.7"
 
 services:
-  speech-azure:
-    build: speech-azure
-    restart: unless-stopped
-    networks:
-     - voice-api
-    ports:
-      - 8181:8000
-    volumes:
-      - ./speech-azure/src/:/app
-      - /var/lib/asterisk/sounds/:/sounds
-      - /etc/localtime:/etc/localtime
+  # speech-azure:
+  #   image: ikonoim/speech-azure:0.0.1
+  #   build:
+  #     context: speech-azure
+  #     dockerfile: Dockerfile
+  #     # runtime, or dev, or test for running tests
+  #     target: runtime
+  #   restart: unless-stopped
+  #   ports:
+  #     - 8181:8000
+  #   environment:
+  #     - AZURE_API_TOKEN
+  #     - DEFAULT_LANG=es-MX-JorgeNeural
+  #   volumes:
+  #     - /etc/localtime:/etc/localtime
+  #     - /var/lib/asterisk/sounds/:/sounds
+  #     ## - ./speech-azure/src/:/app
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: 20m
+  #       max-file: "10"
+  #   networks:
+  #    - voice-api
 
-  speech-google:
-    build: speech-google
-    restart: unless-stopped
-    networks:
-     - voice-api
-    ports:
-      - 8182:8000
-    volumes:
-      - ./speech-google/src/:/app
-      - /var/lib/asterisk/sounds/:/sounds
-      - /etc/localtime:/etc/localtime
+  # speech-google:
+  #   image: ikonoim/speech-google:0.0.1
+  #   build: 
+  #     context: speech-google
+  #     dockerfile: Dockerfile
+  #     # runtime, or dev, or test for running tests
+  #     target: runtime
+  #   restart: unless-stopped
+  #   ports:
+  #     - 8182:8000
+  #   environment:
+  #     - GOOGLE_APPLICATION_CREDENTIALS
+  #   volumes:
+  #     - /etc/localtime:/etc/localtime
+  #     - /var/lib/asterisk/sounds/:/sounds
+  #     ## - ./speech-google/src/:/app
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: 20m
+  #       max-file: "10"
+  #   networks:
+  #    - voice-api
 
   tts-azure:
-    build: tts-azure
+    image: ikonoim/tts-azure:0.0.1
+    build: 
+      context: tts-azure
+      dockerfile: Dockerfile
+      # runtime, or dev, or test for running tests
+      target: runtime
     restart: unless-stopped
-    networks:
-     - voice-api
     ports:
       - 8081:8000
+    environment:
+      - AZURE_API_TOKEN
     volumes:
-      - ./tts-azure/src/:/app
-      - /var/lib/asterisk/sounds/:/sounds
+      - ./config.yaml:/etc/config.yaml
       - /etc/localtime:/etc/localtime
-    #entrypoint: watchmedo auto-restart --recursive --pattern="*.py" --directory="." python main.py
+      - /var/lib/asterisk/sounds/:/sounds
+      ## - ./tts-azure/src/:/app
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "10"
+    networks:
+     - voice-api
 
 networks:
   voice-api:
-    external: true
+    name: voice-api
+    # driver: overlay
+    attachable: true
+    ipam:
+      config:
+        - subnet: 172.31.128.0/24
