@@ -1,6 +1,5 @@
-fastapi
 pyyaml
+fastapi
 aiohttp
 sox
-watchdog
-argh
+uvicorn
