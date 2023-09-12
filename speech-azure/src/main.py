@@ -13,7 +13,7 @@ import logging.config
 import asyncio
 import functools
 
-with open("config.yaml") as file_stream:
+with open("/etc/config.yaml") as file_stream:
     config = yaml.full_load(file_stream)
 
 logging.config.dictConfig(config.get("logging"))
@@ -29,8 +29,9 @@ except KeyError:
 app = FastAPI()
 loop = asyncio.get_running_loop()
 
-api_region = "eastus"
 api_token = os.environ.get("AZURE_API_TOKEN")
+api_region = os.environ.get("API_REGION", "eastus")
+DEFAULT_LANG = os.environ.get("DEFAULT_LANG", "es-MX")
 
 
 def azure_recognize(speech_recognizer):
@@ -39,14 +40,14 @@ def azure_recognize(speech_recognizer):
 
 
 @app.post("/recognize")
-async def recognize(file_path: str, phrase: Optional[List[str]] = Query(None)):
+async def recognize(file_path: str, phrase: Optional[List[str]] = Query(None), language: Optional[str] = DEFAULT_LANG):
     audio_file = os.path.join("/sounds", file_path)
 
     try:
         logger.debug(f"Executing Recognition to file: {file_path} and phrase list {phrase}")
 
         speech_config = speechsdk.SpeechConfig(subscription=api_token, region=api_region)
-        speech_config.speech_recognition_language = "es-MX"
+        speech_config.speech_recognition_language = language
         audio_input = speechsdk.AudioConfig(filename=audio_file)
         speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config,
                                                        audio_config=audio_input)

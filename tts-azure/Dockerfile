@@ -1,7 +1,10 @@
-FROM tiangolo/uvicorn-gunicorn:python3.8 as dev
+FROM python:3.8 as base
 
 LABEL name="TTS API"
 LABEL authors="iKono Telecomunicaciones"
+
+# set the working directory in the container
+WORKDIR /app
 
 # Install all required dependencies
 RUN apt-get update \
@@ -11,16 +14,18 @@ RUN apt-get update \
 
 # copy the dependencies file to the working directory
 COPY requirements.txt .
-COPY requirements-dev.txt .
 # install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir -r requirements-dev.txt
+RUN PYTHONUSERBASE=/install pip install --no-cache-dir -r requirements.txt
 
+
+FROM base AS dev
 # Add metadata to the image to describe which port the container is listening on at runtime.
 EXPOSE 8000
 
-# set the working directory in the container
-WORKDIR /app
+# copy the dependencies file to the working directory
+COPY requirements-dev.txt .
+RUN pip install --no-cache-dir -r requirements-dev.txt
+
 
 # copy the content of the local src directory to the working directory
 COPY ./src/ .
@@ -42,6 +47,7 @@ FROM python:3.8-slim as runtime
 RUN apt-get update \
   && apt-get install -y \
      sox \
+     libsox-fmt-all \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /code

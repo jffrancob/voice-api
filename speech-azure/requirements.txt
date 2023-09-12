@@ -1,6 +1,5 @@
 fastapi
 pyyaml
 aiohttp
-watchdog
-argh
 azure-cognitiveservices-speech
+uvicorn
