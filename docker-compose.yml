@@ -18,8 +18,33 @@ services:
     volumes:
       - ./config.yaml:/etc/config.yaml
       - /etc/localtime:/etc/localtime
-      - /var/lib/asterisk/sounds/:/sounds
-      - ./speech-azure/src/:/app
+      - ~/sounds/:/sounds
+      ##- ./speech-azure/src/:/app
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "10"
+    networks:
+     - voice-api
+
+  speech-whisper:
+    image: ikonoim/speech-whisper:0.0.1
+    build:
+      context: speech-whisper
+      dockerfile: Dockerfile
+      # runtime, or dev, or test for running tests
+      target: runtime
+    restart: unless-stopped
+    ports:
+      - 8183:8000
+    environment:
+      - OPENAI_API_KEY
+    volumes:
+      - ./config.yaml:/etc/config.yaml
+      - /etc/localtime:/etc/localtime
+      - ./sounds/:/sounds
+      ##- ./speech-whisper/src/:/app
     logging:
       driver: json-file
       options:
@@ -30,7 +55,7 @@ services:
 
   # speech-google:
   #   image: ikonoim/speech-google:0.0.1
-  #   build: 
+  #   build:
   #     context: speech-google
   #     dockerfile: Dockerfile
   #     # runtime, or dev, or test for running tests
@@ -42,7 +67,7 @@ services:
   #     - GOOGLE_APPLICATION_CREDENTIALS
   #   volumes:
   #     - /etc/localtime:/etc/localtime
-  #     - /var/lib/asterisk/sounds/:/sounds
+  #     - ./sounds/:/sounds
   #     ## - ./speech-google/src/:/app
   #   logging:
   #     driver: json-file
@@ -54,7 +79,7 @@ services:
 
   tts-azure:
     image: ikonoim/tts-azure:0.0.1
-    build: 
+    build:
       context: tts-azure
       dockerfile: Dockerfile
       # runtime, or dev, or test for running tests
@@ -67,7 +92,7 @@ services:
     volumes:
       - ./config.yaml:/etc/config.yaml
       - /etc/localtime:/etc/localtime
-      - /var/lib/asterisk/sounds/:/sounds
+      - ./sounds/:/sounds
       ## - ./tts-azure/src/:/app
     logging:
       driver: json-file

@@ -1,17 +1,14 @@
-from fastapi import FastAPI, Query
+import asyncio
+import functools
+import logging
+import logging.config
+import os
+import sys
 from typing import List, Optional
 
 import azure.cognitiveservices.speech as speechsdk
-
-import os
-import sys
 import yaml
-
-import logging
-import logging.config
-
-import asyncio
-import functools
+from fastapi import FastAPI, Query
 
 with open("/etc/config.yaml") as file_stream:
     config = yaml.full_load(file_stream)
@@ -40,25 +37,37 @@ def azure_recognize(speech_recognizer):
 
 
 @app.post("/recognize")
-async def recognize(file_path: str, phrase: Optional[List[str]] = Query(None), language: Optional[str] = DEFAULT_LANG):
+async def recognize(
+    file_path: str,
+    phrase: Optional[List[str]] = Query(None),
+    language: Optional[str] = DEFAULT_LANG,
+):
     audio_file = os.path.join("/sounds", file_path)
 
     try:
-        logger.debug(f"Executing Recognition to file: {file_path} and phrase list {phrase}")
+        logger.debug(
+            f"Executing Recognition to file: {audio_file} and phrase list {phrase}"
+        )
 
-        speech_config = speechsdk.SpeechConfig(subscription=api_token, region=api_region)
+        speech_config = speechsdk.SpeechConfig(
+            subscription=api_token, region=api_region
+        )
         speech_config.speech_recognition_language = language
         audio_input = speechsdk.AudioConfig(filename=audio_file)
-        speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config,
-                                                       audio_config=audio_input)
+        speech_recognizer = speechsdk.SpeechRecognizer(
+            speech_config=speech_config, audio_config=audio_input
+        )
 
         if phrase:
-            phrase_list_grammar = speechsdk.PhraseListGrammar.from_recognizer(speech_recognizer)
+            phrase_list_grammar = speechsdk.PhraseListGrammar.from_recognizer(
+                speech_recognizer
+            )
             for sentence in phrase:
                 phrase_list_grammar.addPhrase(sentence)
 
-        result = await loop.run_in_executor(None, functools.partial(azure_recognize,
-                                                                    speech_recognizer))
+        result = await loop.run_in_executor(
+            None, functools.partial(azure_recognize, speech_recognizer)
+        )
         if result.reason == speechsdk.ResultReason.RecognizedSpeech:
             result_text = result.text.strip(" .")
             logger.debug(f"Recognition in {file_path}. result: {result_text}")
@@ -76,4 +85,6 @@ async def recognize(file_path: str, phrase: Optional[List[str]] = Query(None), l
         return None
 
     except Exception as e:
-        logger.debug("Could not request results from Google Cloud Speech service; {0}".format(e))
+        logger.debug(
+            "Could not request results from Google Cloud Speech service; {0}".format(e)
+        )

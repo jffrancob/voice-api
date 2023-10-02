@@ -3,14 +3,8 @@ FROM python:3.8 as base
 LABEL name="speech API"
 LABEL authors="iKono Telecomunicaciones"
 
-RUN apt update && \
-    apt -y install \
-        build-essential \
-        libssl-dev \
-        ca-certificates \
-        libasound2 \
-        wget
-
+RUN apt update
+RUN apt -y install ffmpeg
 # set the working directory in the container
 WORKDIR /app
 
@@ -47,6 +41,9 @@ CMD ["main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 FROM python:3.8-slim as runtime
 
 WORKDIR /code
+
+RUN apt update
+RUN apt -y install ffmpeg
 
 COPY ./requirements.txt /code/requirements.txt
 
