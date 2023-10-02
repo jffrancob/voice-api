@@ -43,7 +43,7 @@ services:
     volumes:
       - ./config.yaml:/etc/config.yaml
       - /etc/localtime:/etc/localtime
-      - ./sounds/:/sounds
+      - ~/sounds/:/sounds
       ##- ./speech-whisper/src/:/app
     logging:
       driver: json-file
@@ -67,7 +67,7 @@ services:
   #     - GOOGLE_APPLICATION_CREDENTIALS
   #   volumes:
   #     - /etc/localtime:/etc/localtime
-  #     - ./sounds/:/sounds
+  #     - ~/sounds/:/sounds
   #     ## - ./speech-google/src/:/app
   #   logging:
   #     driver: json-file
@@ -92,7 +92,7 @@ services:
     volumes:
       - ./config.yaml:/etc/config.yaml
       - /etc/localtime:/etc/localtime
-      - ./sounds/:/sounds
+      - ~/sounds/:/sounds
       ## - ./tts-azure/src/:/app
     logging:
       driver: json-file
