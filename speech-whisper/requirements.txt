@@ -1,5 +1,6 @@
 fastapi
 pyyaml
 aiohttp
+python-multipart
 openai
 uvicorn

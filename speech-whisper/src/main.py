@@ -9,8 +9,9 @@ from typing import List, Optional
 
 import openai
 import yaml
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile
 from pydantic import BaseModel
+from typing_extensions import Annotated
 
 
 class AudioFile(BaseModel):
@@ -95,9 +96,25 @@ async def recognize(audio: AudioFile):
 
         return result
 
-    except Exception as e:
-        logger.debug(f"Could not request results from whisper; {e}; {model}")
-        return e
+    except Exception as error:
+        logger.debug(f"Could not request results from whisper for model: {model}; {error}")
+        return error
+
+@app.post("/files/")
+async def create_file(file: Annotated[bytes, File(description="A file read as bytes")]):
+    return {"file_size": len(file)}
+
+
+@app.post("/uploadfile/")
+async def create_upload_file(
+    file: Annotated[UploadFile, File(description="A file read as UploadFile")],
+):
+    content = await file.read()
+    return {"filename": file.filename,
+            "content_type": file.content_type,
+            "size": len(content),
+            "content": content
+            }
 
 
 def correct_transcript(model, temperature, system_prompt, content):
@@ -109,4 +126,5 @@ def correct_transcript(model, temperature, system_prompt, content):
             {"role": "user", "content": content},
         ],
     )
+    logger.debug(f"Transcript correction response: {response}")
     return response["choices"][0]["message"]["content"]

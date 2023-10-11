@@ -7,7 +7,7 @@ services:
       context: speech-azure
       dockerfile: Dockerfile
       # runtime, or dev, or test for running tests
-      target: runtime
+      target: dev
     restart: unless-stopped
     ports:
       - 8181:8000
@@ -19,7 +19,7 @@ services:
       - ./config.yaml:/etc/config.yaml
       - /etc/localtime:/etc/localtime
       - ~/sounds/:/sounds
-      ##- ./speech-azure/src/:/app
+      - ./speech-azure/src/:/app
     logging:
       driver: json-file
       options:
@@ -34,7 +34,7 @@ services:
       context: speech-whisper
       dockerfile: Dockerfile
       # runtime, or dev, or test for running tests
-      target: runtime
+      target: dev
     restart: unless-stopped
     ports:
       - 8183:8000
@@ -44,7 +44,7 @@ services:
       - ./config.yaml:/etc/config.yaml
       - /etc/localtime:/etc/localtime
       - ~/sounds/:/sounds
-      ##- ./speech-whisper/src/:/app
+      - ./speech-whisper/src/:/app
     logging:
       driver: json-file
       options:
@@ -83,7 +83,7 @@ services:
       context: tts-azure
       dockerfile: Dockerfile
       # runtime, or dev, or test for running tests
-      target: runtime
+      target: dev
     restart: unless-stopped
     ports:
       - 8081:8000
@@ -93,7 +93,7 @@ services:
       - ./config.yaml:/etc/config.yaml
       - /etc/localtime:/etc/localtime
       - ~/sounds/:/sounds
-      ## - ./tts-azure/src/:/app
+      - ./tts-azure/src/:/app
     logging:
       driver: json-file
       options:
