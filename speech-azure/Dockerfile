@@ -1,4 +1,4 @@
-FROM python:3.8 as base
+FROM python:3.8-buster as base
 
 LABEL name="speech API"
 LABEL authors="iKono Telecomunicaciones"
@@ -44,7 +44,7 @@ CMD ["main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 
 
-FROM python:3.8-slim as runtime
+FROM python:3.8-slim-buster as runtime
 
 WORKDIR /code
 

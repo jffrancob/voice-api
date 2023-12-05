@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   speech-azure:
-    image: ikonoim/speech-azure:0.0.1
+    image: ikonoim/speech-azure:0.0.2
     build:
       context: speech-azure
       dockerfile: Dockerfile
@@ -29,7 +29,7 @@ services:
      - voice-api
 
   speech-whisper:
-    image: ikonoim/speech-whisper:0.0.1
+    image: ikonoim/speech-whisper:0.0.2
     build:
       context: speech-whisper
       dockerfile: Dockerfile
