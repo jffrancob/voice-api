@@ -3,6 +3,14 @@ FROM python:3.8-buster as base
 LABEL name="speech API"
 LABEL authors="iKono Telecomunicaciones"
 
+RUN apt update && \
+    apt -y install \
+        build-essential \
+        libssl-dev \
+        ca-certificates \
+        libasound2 \
+        wget
+
 # set the working directory in the container
 WORKDIR /app
 

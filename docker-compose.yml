@@ -7,7 +7,7 @@ services:
       context: speech-azure
       dockerfile: Dockerfile
       # runtime, or dev, or test for running tests
-      target: runtime
+      target: dev
     restart: unless-stopped
     ports:
       - 8181:8000
@@ -18,7 +18,7 @@ services:
     volumes:
       - ./config.yaml:/etc/config.yaml
       - /etc/localtime:/etc/localtime
-      - /var/lib/asterisk/sounds/:/sounds
+      - ~/sounds/:/sounds
       - ./speech-azure/src/:/app
     logging:
       driver: json-file
@@ -34,7 +34,7 @@ services:
       context: speech-whisper
       dockerfile: Dockerfile
       # runtime, or dev, or test for running tests
-      target: runtime
+      target: dev
     restart: unless-stopped
     ports:
       - 8183:8000
@@ -67,7 +67,7 @@ services:
   #     - GOOGLE_APPLICATION_CREDENTIALS
   #   volumes:
   #     - /etc/localtime:/etc/localtime
-  #     - /var/lib/asterisk/sounds/:/sounds
+  #     - ~/sounds/:/sounds
   #     ## - ./speech-google/src/:/app
   #   logging:
   #     driver: json-file
@@ -83,7 +83,7 @@ services:
       context: tts-azure
       dockerfile: Dockerfile
       # runtime, or dev, or test for running tests
-      target: runtime
+      target: dev
     restart: unless-stopped
     ports:
       - 8081:8000
@@ -92,8 +92,8 @@ services:
     volumes:
       - ./config.yaml:/etc/config.yaml
       - /etc/localtime:/etc/localtime
-      - /var/lib/asterisk/sounds/:/sounds
-      ## - ./tts-azure/src/:/app
+      - ~/sounds/:/sounds
+      - ./tts-azure/src/:/app
     logging:
       driver: json-file
       options:
