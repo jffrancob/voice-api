@@ -1,17 +1,15 @@
-from fastapi import FastAPI, Query
+import asyncio
+import functools
+import logging
+import logging.config
+import os
+import sys
 from typing import List, Optional
 
 import azure.cognitiveservices.speech as speechsdk
-
-import os
-import sys
 import yaml
-
-import logging
-import logging.config
-
-import asyncio
-import functools
+from fastapi import FastAPI, Query
+from pydantic import BaseModel
 
 with open("/etc/config.yaml") as file_stream:
     config = yaml.full_load(file_stream)
@@ -21,17 +19,22 @@ logger = logging.getLogger()
 logger.debug("starting config...")
 
 try:
-    os.environ["AZURE_API_TOKEN"]
+    API_TOKEN = os.environ["AZURE_API_TOKEN"]
 except KeyError:
     logger.error("Please set the environment variable AZURE_API_TOKEN")
     sys.exit(1)
+API_REGION = os.environ.get("API_REGION", "eastus")
+DEFAULT_LANG = os.environ.get("DEFAULT_LANG", "es-MX")
 
 app = FastAPI()
 loop = asyncio.get_running_loop()
 
-api_token = os.environ.get("AZURE_API_TOKEN")
-api_region = os.environ.get("API_REGION", "eastus")
-DEFAULT_LANG = os.environ.get("DEFAULT_LANG", "es-MX")
+
+class AudioFile(BaseModel):
+    file_path: str
+    file_format: str = "wav"
+    phrase: Optional[List[str]] = Query(None)
+    language: Optional[str] = DEFAULT_LANG
 
 
 def azure_recognize(speech_recognizer):
@@ -40,28 +43,35 @@ def azure_recognize(speech_recognizer):
 
 
 @app.post("/recognize")
-async def recognize(file_path: str, phrase: Optional[List[str]] = Query(None), language: Optional[str] = DEFAULT_LANG):
-    audio_file = os.path.join("/sounds", file_path)
-
+async def recognize(audio: AudioFile):
+    audio_path = os.path.join("/sounds", f"{audio.file_path}.{audio.file_format}")
     try:
-        logger.debug(f"Executing Recognition to file: {file_path} and phrase list {phrase}")
+        logger.debug(
+            f"Executing Recognition to file: {audio_path} and phrase list {audio.phrase}"
+        )
 
-        speech_config = speechsdk.SpeechConfig(subscription=api_token, region=api_region)
-        speech_config.speech_recognition_language = language
-        audio_input = speechsdk.AudioConfig(filename=audio_file)
-        speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config,
-                                                       audio_config=audio_input)
+        speech_config = speechsdk.SpeechConfig(
+            subscription=API_TOKEN, region=API_REGION
+        )
+        speech_config.speech_recognition_language = audio.language
+        audio_input = speechsdk.AudioConfig(filename=audio_path)
+        speech_recognizer = speechsdk.SpeechRecognizer(
+            speech_config=speech_config, audio_config=audio_input
+        )
 
-        if phrase:
-            phrase_list_grammar = speechsdk.PhraseListGrammar.from_recognizer(speech_recognizer)
-            for sentence in phrase:
+        if audio.phrase:
+            phrase_list_grammar = speechsdk.PhraseListGrammar.from_recognizer(
+                speech_recognizer
+            )
+            for sentence in audio.phrase:
                 phrase_list_grammar.addPhrase(sentence)
 
-        result = await loop.run_in_executor(None, functools.partial(azure_recognize,
-                                                                    speech_recognizer))
+        result = await loop.run_in_executor(
+            None, functools.partial(azure_recognize, speech_recognizer)
+        )
         if result.reason == speechsdk.ResultReason.RecognizedSpeech:
             result_text = result.text.strip(" .")
-            logger.debug(f"Recognition in {file_path}. result: {result_text}")
+            logger.debug(f"Recognition in {audio.file_path}. result: {result_text}")
             return {"text": result_text}
         elif result.reason == speechsdk.ResultReason.NoMatch:
             logger.error(f"No speech could be recognized: {result.no_match_details}")
@@ -75,5 +85,5 @@ async def recognize(file_path: str, phrase: Optional[List[str]] = Query(None), l
 
         return None
 
-    except Exception as e:
-        logger.debug("Could not request results from Google Cloud Speech service; {0}".format(e))
+    except Exception as error:
+        logger.debug(f"Could not request results from Azure Speech service; {error}")
