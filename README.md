@@ -1,2 +1,2 @@
 # tts-api
-One TTS REST API to rule them all
+One AI REST API to rule them all
