@@ -2,5 +2,5 @@ fastapi
 pyyaml
 aiohttp
 python-multipart
-openai
+openai==0.28.1
 uvicorn
